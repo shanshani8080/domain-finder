@@ -1,0 +1,54 @@
+{
+  "tlds": ["com", "net", "org"],
+
+  "name_rules": {
+    "min_length": 4,
+    "max_length": 18,
+    "letters_only": true,
+    "allow_hyphens": false
+  },
+
+  "watchlist": {
+    "majestic_top_n": 1000000,
+    "max_candidates_after_name_filter": 40000,
+    "cdx_chunk_per_run": 6000,
+    "min_first_year_age": 8,
+    "min_captures": 100,
+    "min_year_coverage": 0.70,
+    "max_years_since_last_capture": 6
+  },
+
+  "monitor": {
+    "slices": 7,
+    "dns_concurrency": 60,
+    "rdap_timeout_sec": 15
+  },
+
+  "vetting": {
+    "snapshots_per_domain": 6,
+    "wayback_delay_sec": 1.5
+  },
+
+  "scoring": {
+    "alert_min_score": 75,
+    "max_alerts_per_day": 3,
+    "weights": {
+      "age": 25,
+      "captures": 15,
+      "coverage": 15,
+      "consistency": 20,
+      "authority": 25
+    }
+  },
+
+  "metrics": {
+    "open_pagerank_min": 2.0,
+    "ahrefs_dr_min": 10,
+    "google_index_check": true
+  },
+
+  "alerts": {
+    "method": "gmail",
+    "subject_prefix": "[Domain Finder]"
+  }
+}

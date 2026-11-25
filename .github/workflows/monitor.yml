@@ -1,0 +1,46 @@
+name: daily-monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 2 * * *"   # 02:41 UTC = 07:41 Pakistan time, daily
+
+permissions:
+  contents: write
+
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run monitor
+        env:
+          ALERT_TO:           ${{ secrets.ALERT_TO }}
+          GMAIL_USER:         ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RESEND_API_KEY:     ${{ secrets.RESEND_API_KEY }}
+          AHREFS_API_KEY:     ${{ secrets.AHREFS_API_KEY }}
+          OPR_API_KEY:        ${{ secrets.OPR_API_KEY }}
+          MOZ_ACCESS_ID:      ${{ secrets.MOZ_ACCESS_ID }}
+          MOZ_SECRET_KEY:     ${{ secrets.MOZ_SECRET_KEY }}
+          GOOGLE_CSE_KEY:     ${{ secrets.GOOGLE_CSE_KEY }}
+          GOOGLE_CSE_CX:      ${{ secrets.GOOGLE_CSE_CX }}
+        run: python -m src.monitor
+
+      - name: Commit state
+        run: |
+          git config user.name  "domain-finder-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add state/
+          git diff --cached --quiet || git commit -m "monitor state $(date -u +%F)"
+          git push

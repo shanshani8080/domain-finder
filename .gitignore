@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+zonecache/
+ledger/
+ztmp/
+data/
+dashboard.html
+*.zip
+.plateo-local.json
+node_modules/

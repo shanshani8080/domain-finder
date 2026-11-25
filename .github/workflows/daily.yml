@@ -1,0 +1,89 @@
+name: daily
+
+on:
+  schedule:
+    - cron: "17 4 * * *"        # once a day, after the registries publish
+  workflow_dispatch:
+    inputs:
+      force_bootstrap:
+        description: "Also run the Majestic-minus-zone pass"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 170
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Restore pipeline memory
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            zonecache
+            ledger
+          key: pipeline-${{ github.run_id }}
+          restore-keys: pipeline-
+
+      - name: Check out the private data repo
+        env:
+          KEY: ${{ secrets.DATA_DEPLOY_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "DATA_DEPLOY_KEY secret is missing; run the updater once"
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/data_key
+          chmod 600 ~/.ssh/data_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/data_key -o IdentitiesOnly=yes" >> "$GITHUB_ENV"
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/data_key -o IdentitiesOnly=yes" \
+            git clone --depth 5 \
+            "git@github.com:${{ github.repository_owner }}/domain-finder-data.git" data
+
+      - name: Run the pipeline
+        env:
+          DATA_DIR: data
+          FORCE_BOOTSTRAP: ${{ github.event.inputs.force_bootstrap == '1' && '1' || '' }}
+          CZDS_USERNAME:      ${{ secrets.CZDS_USERNAME }}
+          CZDS_PASSWORD:      ${{ secrets.CZDS_PASSWORD }}
+          ALERT_TO:           ${{ secrets.ALERT_TO }}
+          GMAIL_USER:         ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RESEND_API_KEY:     ${{ secrets.RESEND_API_KEY }}
+          AHREFS_API_KEY:     ${{ secrets.AHREFS_API_KEY }}
+          OPR_API_KEY:        ${{ secrets.OPR_API_KEY }}
+          MOZ_ACCESS_ID:      ${{ secrets.MOZ_ACCESS_ID }}
+          MOZ_SECRET_KEY:     ${{ secrets.MOZ_SECRET_KEY }}
+          GOOGLE_CSE_KEY:     ${{ secrets.GOOGLE_CSE_KEY }}
+          GOOGLE_CSE_CX:      ${{ secrets.GOOGLE_CSE_CX }}
+        run: python -m src.daily
+
+      - name: Publish results to the data repo
+        if: always()
+        env:
+          DATA_DIR: data
+          COMMIT_MSG: "daily results"
+        run: bash scripts/commit_data.sh
+
+      - name: Save pipeline memory
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            zonecache
+            ledger
+          key: pipeline-${{ github.run_id }}

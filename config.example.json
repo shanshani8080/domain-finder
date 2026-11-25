@@ -1,0 +1,65 @@
+{
+  "_note": "Copy of the default configuration. The LIVE config lives in the private data repo as config.json; edit it there. This example only documents the shape.",
+
+  "tlds": ["com", "net", "org"],
+
+  "name_rules": {
+    "min_length": 4,
+    "max_length": 15,
+    "letters_only": true,
+    "allow_hyphens": false
+  },
+
+  "ledger": {
+    "opr_budget_per_day": 900,
+    "opr_min": 1.0,
+    "cdx_budget_per_day": 120,
+    "dr_budget_per_day": 40,
+    "rdap_budget_per_day": 400,
+    "watch_age_days": 25,
+    "max_watch_days": 85
+  },
+
+  "bootstrap": {
+    "enabled": true,
+    "weekly_dow": 5,
+    "rdap_budget": 300,
+    "vet_budget": 40
+  },
+
+  "watchlist": {
+    "min_first_year_age": 8,
+    "min_captures": 60,
+    "min_year_coverage": 0.60,
+    "max_years_since_last_capture": 6
+  },
+
+  "vetting": {
+    "snapshots_per_domain": 5,
+    "wayback_delay_sec": 1.0
+  },
+
+  "scoring": {
+    "alert_min_score": 52,
+    "max_alerts_per_day": 3,
+    "weights": {
+      "age": 25,
+      "captures": 15,
+      "coverage": 15,
+      "consistency": 20,
+      "authority": 25
+    }
+  },
+
+  "metrics": {
+    "open_pagerank_min": 2.0,
+    "ahrefs_dr_min": 10,
+    "google_index_check": false
+  },
+
+  "alerts": {
+    "method": "gmail",
+    "subject_prefix": "[Domain Finder]",
+    "ahrefs_link_base": "https://app.ahrefs.com"
+  }
+}

@@ -1,0 +1,60 @@
+name: build-watchlist
+
+on:
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: "Wipe and rebuild from scratch"
+        required: false
+        default: "false"
+  schedule:
+    - cron: "17 */4 * * *"   # keeps chunking until the list is complete, then exits fast
+
+permissions:
+  contents: write
+
+concurrency:
+  group: watchlist
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Optional full refresh
+        if: ${{ github.event.inputs.refresh == 'true' }}
+        run: rm -f state/candidates.txt state/cdx_cursor.txt state/watchlist.txt
+
+      - name: Skip if already complete
+        id: check
+        run: |
+          if [ -f state/candidates.txt ] && [ -f state/cdx_cursor.txt ]; then
+            total=$(wc -l < state/candidates.txt)
+            cur=$(cat state/cdx_cursor.txt)
+            if [ "$cur" -ge "$total" ]; then
+              echo "complete=true" >> "$GITHUB_OUTPUT"
+              echo "watchlist already complete ($(wc -l < state/watchlist.txt 2>/dev/null || echo 0) domains)"
+              exit 0
+            fi
+          fi
+          echo "complete=false" >> "$GITHUB_OUTPUT"
+
+      - name: Build chunk
+        if: ${{ steps.check.outputs.complete != 'true' }}
+        run: python -m src.build_watchlist
+
+      - name: Commit progress
+        if: ${{ steps.check.outputs.complete != 'true' }}
+        run: |
+          git config user.name  "domain-finder-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add state/
+          git diff --cached --quiet || git commit -m "watchlist progress"
+          git push
